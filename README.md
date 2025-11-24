@@ -3,16 +3,13 @@
 This project extracts text from PDF documents, tokenizes and lemmatizes the content using **spaCy**, and builds an **inverted index** using a B-Tree structure (`OOBTree`).  
 The index allows fast searching of terms across multiple PDF files.
 
----
 
 ## Requirements
-
 Before running the script, make sure the required libraries are installed:
 
-```python
-import pdfplumber
-import spacy
-from BTrees.OOBTree import OOBTree
+```
+pip install pdfplumber spacy BTrees
+python -m spacy download en_core_web_sm
 ```
 
 Sample PDF Files
