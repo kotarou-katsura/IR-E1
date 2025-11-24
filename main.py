@@ -33,8 +33,9 @@ def tokenize(text):
 
 
 def lemmatize(doc):
+    # Keep original text capitalization but use lemma for grouping
     lemma_terms = set(
-        token.lemma_.lower()
+        token.text  # Keep original text with its original capitalization
         for token in doc
         if token.is_alpha
     )
@@ -43,11 +44,14 @@ def lemmatize(doc):
 
 def build_inverted_index(list_of_lemma_sets):
     btree_index = OOBTree()
-    for doc_id, lemma_sets in enumerate(list_of_lemma_sets):
-        for lemma in lemma_sets:
-            if lemma not in btree_index:
-                btree_index[lemma] = set()
-            btree_index[lemma].add(doc_id)
+    for doc_id, lemmas in enumerate(list_of_lemma_sets):
+        for lemma in lemmas:
+            # Store with lowercase key for case-insensitive search, but keep original form
+            key = lemma.lower()
+            if key not in btree_index:
+                btree_index[key] = {'doc_ids': set(), 'forms': set()}
+            btree_index[key]['doc_ids'].add(doc_id)
+            btree_index[key]['forms'].add(lemma)  # Store original form
     return btree_index
 
 
@@ -58,7 +62,7 @@ def print_colored(title, content, color=Colors.GREEN):
 
 
 # Example usage for multiple PDFs
-pdf_files = ['./networking.pdf', './OWASP.pdf']
+pdf_files = ['./ow07.pdf','./networking.pdf', './ow04.pdf']
 lemma_sets = []
 
 print(f"\n{Colors.BOLD}{Colors.HEADER}{'=' * 50}{Colors.RESET}")
@@ -80,7 +84,9 @@ for idx, pdf_path in enumerate(pdf_files, 1):
     lemma_sets.append(lemma_terms)
 
     print(f"{Colors.BLUE}List of lemmatized words (terms):{Colors.RESET}")
-    print(f"  {sorted(list(lemma_terms))[:20]}...")  # Show first 20 lemmas
+    # Sort and display lemmatized terms with original capitalization
+    lemma_list = sorted(list(lemma_terms), key=str.lower)
+    print(f"  {lemma_list[:20]}...")  # Show first 20 lemmas
     print()
 
 print(f"{Colors.BOLD}{Colors.YELLOW}Creating inverted index start{Colors.RESET}")
@@ -102,10 +108,13 @@ while isContinue:
         isContinue = False
         print(f"{Colors.BOLD}{Colors.GREEN}Goodbye!{Colors.RESET}")
     else:
-        result = btree_index.get(query.lower(), set())
+        result = btree_index.get(query.lower(), {})
         print(f"{Colors.BOLD}{Colors.CYAN}Documents containing \"{query}\":{Colors.RESET}")
         if result:
-            print(f"{Colors.GREEN}  Found in documents: {sorted(list(result))}{Colors.RESET}")
+            doc_ids = result['doc_ids']
+            forms = result['forms']
+            print(f"{Colors.GREEN}  Found in documents: {sorted(list(doc_ids))}{Colors.RESET}")
+            print(f"{Colors.CYAN}  Word forms found: {', '.join(sorted(forms, key=str.lower))}{Colors.RESET}")
         else:
             print(f"{Colors.RED}  No documents found containing this term.{Colors.RESET}")
         print()
