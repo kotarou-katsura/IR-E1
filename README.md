@@ -1,6 +1,4 @@
 #   Inverted Index  and B-tree Builder
-
-## Requirements
 Before running the script, make sure the required libraries are installed:
 
 ```
