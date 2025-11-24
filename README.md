@@ -1,4 +1,9 @@
 #   Inverted Index  and B-tree Builder
+
+<img width="1745" height="801" alt="image" src="https://github.com/user-attachments/assets/3e19a149-7cb0-4d27-855b-3b5ced330300" />
+<img width="1523" height="799" alt="image" src="https://github.com/user-attachments/assets/3ee37b40-c398-4dba-9908-d682f683ea77" />
+
+
 Before running the script, make sure the required libraries are installed:
 
 ```
@@ -10,3 +15,4 @@ The project uses three sample PDFs to demonstrate how indexing works:
 ```pdf_files = ['./ow07.pdf', './networking.pdf', './ow04.pdf']```
 
 <p style="color: #8e44ad;">+ more features: i also added the searching feature for a term at the end.</p>
+<img width="1092" height="328" alt="image" src="https://github.com/user-attachments/assets/ceaec18d-4d99-4a19-a601-730b06af358f" />
