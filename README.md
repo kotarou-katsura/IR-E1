@@ -1,9 +1,5 @@
 #   Inverted Index  and B-tree Builder
 
-This project extracts text from PDF documents, tokenizes and lemmatizes the content using **spaCy**, and builds an **inverted index** using a B-Tree structure (`OOBTree`).  
-The index allows fast searching of terms across multiple PDF files.
-
-
 ## Requirements
 Before running the script, make sure the required libraries are installed:
 
