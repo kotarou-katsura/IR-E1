@@ -16,3 +16,19 @@ The project uses three sample PDFs to demonstrate how indexing works:
 
 <p style="color: #8e44ad;">+ more features: i also added the searching feature for a term at the end.</p>
 <img width="1092" height="328" alt="image" src="https://github.com/user-attachments/assets/ceaec18d-4d99-4a19-a601-730b06af358f" />
+
+# Retrieval Models
+
+**STANDARD BOOLEAN**  
+Allowed operators: `AND`, `OR`, `NOT`, parentheses `( )`  
+
+**EXTENDED BOOLEAN**  
+Allowed operators/features:  
+- `"exact phrase"` → phrase match (use double quotes)  
+- `term /k term` → within *k* words (proximity)  
+- `term/s` or `term/p` → same sentence (`/s`) or same paragraph (`/p`)  
+- Wildcard using `!` → e.g., `comput!` matches `computer`, `computing`  
+- Space-separated terms → treated as OR (optional terms scored higher if present)  
+
+
+  
