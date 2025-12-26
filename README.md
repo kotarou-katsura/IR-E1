@@ -14,8 +14,6 @@ The project uses three sample PDFs to demonstrate how indexing works:
 
 ```pdf_files = ['./ow07.pdf', './networking.pdf', './ow04.pdf']```
 
-<p style="color: #8e44ad;">+ more features: i also added the searching feature for a term at the end.</p>
-<img width="1092" height="328" alt="image" src="https://github.com/user-attachments/assets/ceaec18d-4d99-4a19-a601-730b06af358f" />
 
 # Retrieval Models
 
