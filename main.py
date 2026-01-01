@@ -3,7 +3,6 @@ import pdfplumber
 import spacy
 from nltk.stem import PorterStemmer
 from BTrees.OOBTree import OOBTree
-from collections import defaultdict
 
 class Colors:
     BLUE = '\033[94m'  # Blue
@@ -40,10 +39,9 @@ def stem_tokens(doc):
         if token.is_alpha
     ]
 
-
+# {key:{frequency:n,postings:{1,2,5,11,..} },key2:{},key3:{},...}
 def build_inverted_index(stem_sets):
     inverted_index = OOBTree()
-
     for doc_id, stems in enumerate(stem_sets):
         for key in stems:
             if key not in inverted_index:
@@ -99,7 +97,7 @@ def display_btree_layered(btree_struct, title="B-Tree Structure"):
     if not levels:
         colorizePrint("RED", "B-Tree has no levels to display!")
         return
-
+    #{0:{},1:{},2:{},3:{},4:{}}
     all_levels = sorted(levels.keys())
     leaf_level = all_levels[0]
     root_level = all_levels[-1]
@@ -162,6 +160,7 @@ def _infix_to_postfix(tokens):
     return output
 
 
+#{1,3,4}
 def _eval_postfix(postfix_tokens):
     stack = []
     for tok in postfix_tokens:
@@ -201,8 +200,9 @@ def standard_boolean_model(query):
 
 def _find_phrase_in_doc(phrase, doc_id):
     terms = [stemmer.stem(t.text.lower()) for t in tokenize(phrase) if t.is_alpha]
-    if not terms:
+    if not terms: # ""
         return False
+    #stem sets:[[t1,t2,..],[..],[..],[..]]
     doc_terms = stem_sets[doc_id]
     n = len(terms)
     for i in range(len(doc_terms) - n + 1):
@@ -255,6 +255,7 @@ def _wildcard_postings(pattern):
 def extended_boolean_model(raw_query):
     colorizePrint("CYAN", f"[EXTENDED BOOLEAN] Query: {raw_query}")
     tokens = raw_query.strip().split()
+    #at first all of docs are candidates!
     candidates = set(range(N_DOCS))
     i = 0
     while i < len(tokens):
@@ -267,7 +268,7 @@ def extended_boolean_model(raw_query):
             phrase = phrase.strip('"')
             matching = {d for d in range(N_DOCS) if _find_phrase_in_doc(phrase, d)}
             candidates &= matching
-        elif i + 2 < len(tokens) and re.match(r'^/[\d]+$', tokens[i + 1]):
+        elif i + 2 < len(tokens) and re.match(r'^/[\d]+$', tokens[i + 1]): #term1 /10 term2
             term1 = tok
             k = int(tokens[i + 1].lstrip('/'))
             term2 = tokens[i + 2]
@@ -277,7 +278,7 @@ def extended_boolean_model(raw_query):
                 matching = {d for d in range(N_DOCS) if _within_k_words(t1, t2, k, d)}
                 candidates &= matching
             i += 2
-        elif tok.endswith('/s') or tok.endswith('/p'):
+        elif tok.endswith('/s') or tok.endswith('/p'): #term/s term2
             mode = tok[-2:]
             t1_raw = tok[:-2]
             if i + 1 < len(tokens):
@@ -335,8 +336,9 @@ def menu():
 
 nlp = spacy.load("en_core_web_sm")
 stemmer = PorterStemmer()
-pdf_files = ['./ow07.pdf', './networking.pdf']
-#, './ow04.pdf', './doc3.pdf', './ow04.pdf', './doc3.pdf'
+pdf_files = ['./ow07.pdf', './networking.pdf', './ow04.pdf', './doc3.pdf']
+
+#[[t1,t2,..],[t1,t3,..],[],[]]
 stem_sets = []
 raw_texts = []  # store full raw text per document (for phrase/sentence/paragraph checks)
 
