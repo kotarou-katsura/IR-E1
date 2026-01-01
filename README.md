@@ -1,32 +1,34 @@
-#   Inverted Index  and B-tree Builder
-
-<img width="1745" height="801" alt="image" src="https://github.com/user-attachments/assets/3e19a149-7cb0-4d27-855b-3b5ced330300" />
-<img width="1523" height="799" alt="image" src="https://github.com/user-attachments/assets/3ee37b40-c398-4dba-9908-d682f683ea77" />
-
-
-Before running the script, make sure the required libraries are installed:
+# requirements
+Before running the script, make sure the required libraries are installed :
 
 ```
 pip install pdfplumber spacy BTrees
 python -m spacy download en_core_web_sm
 ```
-The project uses three sample PDFs to demonstrate how indexing works:
+also download 4 PDFs that used as resource for retrival :
 
-```pdf_files = ['./ow07.pdf', './networking.pdf', './ow04.pdf']```
+```pdf_files = ['./ow07.pdf', './networking.pdf', './ow04.pdf', './doc3.pdf']```
 
 
-# Retrieval Models
 
-**STANDARD BOOLEAN**  
-Allowed operators: `AND`, `OR`, `NOT`, parentheses `( )`  
 
-**EXTENDED BOOLEAN**  
-Allowed operators/features:  
-- `"exact phrase"` → phrase match (use double quotes)  
-- `term /k term` → within *k* words (proximity)  
-- `term/s` or `term/p` → same sentence (`/s`) or same paragraph (`/p`)  
-- Wildcard using `!` → e.g., `comput!` matches `computer`, `computing`  
-- Space-separated terms → treated as OR (optional terms scored higher if present)  
+
+<img width="12642" height="7216" alt="a │ hide │ simplifi   → 3 children" src="https://github.com/user-attachments/assets/d8e02cdb-0739-4297-8957-07216cf7ff37" />
+this is not real output. i made this for more clearity and explaining the video!
+
+---
+##  B-tree Builder
+<img width="1699" height="761" alt="Screenshot 2026-01-01 211030" src="https://github.com/user-attachments/assets/a973e18f-d249-4a12-a723-fc96789ef2a2" />
+
+
+
+## Inverted Index 
+<img width="1623" height="750" alt="Screenshot 2026-01-01 211054" src="https://github.com/user-attachments/assets/02d599f9-e544-4933-a50e-06f7aa26ce89" />
+
+## Retrieval Models:
+- standard boolean
+- extended boolean
+<img width="1583" height="494" alt="Screenshot 2026-01-01 211147" src="https://github.com/user-attachments/assets/22565d3e-ce4b-4c72-9fd1-3ee1b3c1a038" />
 
 
   
