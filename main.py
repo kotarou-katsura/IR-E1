@@ -3,7 +3,7 @@ import pdfplumber
 import spacy
 from nltk.stem import PorterStemmer
 from BTrees.OOBTree import OOBTree
-from collections import defaultdict, Counter
+from collections import defaultdict
 
 class Colors:
     BLUE = '\033[94m'  # Blue
@@ -122,7 +122,6 @@ def display_btree_layered(btree_struct, title="B-Tree Structure"):
         print()
 
 
-# STANDARD BOOLEAN (AND/OR/NOT, parentheses)
 def _tokenize_boolean_query(raw_query: str):
     q = raw_query.replace('(', ' ( ').replace(')', ' ) ')
     parts = q.split()
@@ -179,7 +178,7 @@ def _eval_postfix(postfix_tokens):
             else:
                 stack.append(a.union(b))
         else:
-            postings = set(term_doc_tf.get(tok, {}).keys())
+            postings = set(inverted_index.get(tok, {}).get('postings', set()))
             stack.append(postings)
     return stack.pop() if stack else set()
 
@@ -195,27 +194,16 @@ def standard_boolean_model(query):
     if not result:
         colorizePrint("RED", "No documents matched.")
         return []
-    ranked = sorted(result)
-    colorizePrint("GREEN", f"Matched documents: {ranked}")
-    return ranked
-
-
-# -------------------------
-# EXTENDED BOOLEAN (Westlaw-like subset)
-# -------------------------
-def _doc_terms_list(doc_id):
-    return [t.lower() for t in stem_sets[doc_id]]
-
-
-def _doc_text(doc_id):
-    return raw_texts[doc_id]
+    result = sorted(result)
+    colorizePrint("GREEN", f"Matched documents: {result}")
+    return result
 
 
 def _find_phrase_in_doc(phrase, doc_id):
     terms = [stemmer.stem(t.text.lower()) for t in tokenize(phrase) if t.is_alpha]
     if not terms:
         return False
-    doc_terms = _doc_terms_list(doc_id)
+    doc_terms = stem_sets[doc_id]
     n = len(terms)
     for i in range(len(doc_terms) - n + 1):
         if doc_terms[i:i + n] == terms:
@@ -224,7 +212,7 @@ def _find_phrase_in_doc(phrase, doc_id):
 
 
 def _within_k_words(term1, term2, k, doc_id):
-    doc_terms = _doc_terms_list(doc_id)
+    doc_terms = stem_sets[doc_id]
     positions1 = [i for i, t in enumerate(doc_terms) if t == term1]
     positions2 = [i for i, t in enumerate(doc_terms) if t == term2]
     for p1 in positions1:
@@ -235,7 +223,7 @@ def _within_k_words(term1, term2, k, doc_id):
 
 
 def _same_sentence(term1, term2, doc_id):
-    text = _doc_text(doc_id)
+    text =  raw_texts[doc_id]
     doc_spacy = tokenize(text)
     for sent in doc_spacy.sents:
         sent_terms = [stemmer.stem(t.text.lower()) for t in sent if t.is_alpha]
@@ -245,7 +233,7 @@ def _same_sentence(term1, term2, doc_id):
 
 
 def _same_paragraph(term1, term2, doc_id):
-    paras = [p.strip() for p in _doc_text(doc_id).split('\n\n') if p.strip()]
+    paras = [p.strip() for p in  raw_texts[doc_id].split('\n\n') if p.strip()]
     for p in paras:
         pdoc = tokenize(p)
         pterms = [stemmer.stem(t.text.lower()) for t in pdoc if t.is_alpha]
@@ -255,13 +243,12 @@ def _same_paragraph(term1, term2, doc_id):
 
 
 def _wildcard_postings(pattern):
-    # convert '!' to '.*' and match against indexed terms (stems)
     regex = '^' + re.escape(pattern).replace(r'\!', '.*') + '$'
     prog = re.compile(regex)
     hits = set()
-    for term in term_doc_tf.keys():
+    for term in inverted_index.keys():
         if prog.match(term):
-            hits.update(term_doc_tf[term].keys())
+            hits.update(inverted_index[term]['postings'])
     return hits
 
 
@@ -269,11 +256,9 @@ def extended_boolean_model(raw_query):
     colorizePrint("CYAN", f"[EXTENDED BOOLEAN] Query: {raw_query}")
     tokens = raw_query.strip().split()
     candidates = set(range(N_DOCS))
-    optional_scores = defaultdict(int)
     i = 0
     while i < len(tokens):
         tok = tokens[i]
-        # Phrase: "...":
         if tok.startswith('"'):
             phrase = tok
             while not phrase.endswith('"') and i + 1 < len(tokens):
@@ -307,51 +292,31 @@ def extended_boolean_model(raw_query):
                     candidates &= matching
                 i += 1
         elif '!' in tok:
-            normalized = tok.replace('*', '!')  # accept '*' as user wildcard too
-            matching = _wildcard_postings(normalized)
+            matching = _wildcard_postings(tok)
             candidates &= matching
         else:
             t = next((stemmer.stem(t.text.lower()) for t in tokenize(tok) if t.is_alpha), None)
             if t:
-                postings = set(term_doc_tf.get(t, {}).keys())
-                for d in postings:
-                    optional_scores[d] += 1
+                matching = set(inverted_index.get(t, {}).get('postings', set()))
+                candidates &= matching
         i += 1
 
-    if candidates:
-        if optional_scores:
-            filtered_scores = {d: s for d, s in optional_scores.items() if d in candidates}
-            ranked = sorted(filtered_scores.items(), key=lambda x: (-x[1], x[0]))
-            if not ranked:
-                ranked = [(d, 0) for d in sorted(candidates)]
-        else:
-            ranked = [(d, 0) for d in sorted(candidates)]
-    else:
-        ranked = sorted(optional_scores.items(), key=lambda x: (-x[1], x[0]))
-
-    if not ranked:
+    if not candidates:
         colorizePrint("RED", "No documents matched extended query.")
         return []
 
-    ranked_docs = [d for d, sc in ranked]
-    colorizePrint("GREEN", f"Matched documents (ranked): {ranked_docs}")
-    return ranked_docs
+    result_docs = sorted(candidates)
+    colorizePrint("GREEN", f"Matched documents: {result_docs}")
+    return result_docs
 
 def show_standard_boolean_help():
-    colorizePrint("YELLOW", "STANDARD BOOLEAN allowed operators:")
-    colorizePrint("CYAN", "  AND, OR, NOT, parentheses ( )")
-    colorizePrint("CYAN", "  Example: term1 AND (term2 OR term3) AND NOT term4")
-    colorizePrint("CYAN", "  Terms are normalized (lowercased) and stemmed.")
+    colorizePrint("YELLOW", "allowed operators:\n")
+    colorizePrint("RESET", "AND, OR, NOT, ( )\nEx: term1 AND (term2 OR term3) AND NOT term4.")
 
 
 def show_extended_boolean_help():
-    colorizePrint("YELLOW", "EXTENDED BOOLEAN allowed operators/features:")
-    colorizePrint("CYAN", '  "exact phrase"         -> phrase match (use double quotes)')
-    colorizePrint("CYAN", "  term /k term           -> within k words (proximity)")
-    colorizePrint("CYAN", "  term/s or term/p       -> same sentence (/s) or same paragraph (/p)")
-    colorizePrint("CYAN", "  wildcard using '!'     -> e.g. comput! matches computer, computing (rudimentary)")
-    colorizePrint("CYAN", "  space-separated terms  -> treated as OR (optional terms scored higher if present)")
-    colorizePrint("CYAN", "  Example: \"information retrieval\" /5 search")
+    colorizePrint("YELLOW", "allowed operators:\n")
+    colorizePrint("RESET", "\"\", /<num>, /s, /p, !, (), <space>\nEx: \"information retrieval\" /5 search")
 
 def menu():
     print("Choose your retrieval model:\n1) Standard Boolean\n2) Extended Boolean (Westlaw-like)\n3) Exit")
@@ -424,15 +389,6 @@ colorizePrint("YELLOW", "Search Section")
 colorizePrint("YELLOW", "=" * 80 + "\n")
 
 N_DOCS = len(pdf_files)
-# term -> {doc_id: tf}
-term_doc_tf = defaultdict(lambda: defaultdict(int))
-doc_lengths = [0] * N_DOCS
-for doc_id, stems in enumerate(stem_sets):
-    lowered = [t.lower() for t in stems]
-    doc_lengths[doc_id] = len(lowered)
-    freqs = Counter(lowered)
-    for term, tf in freqs.items():
-        term_doc_tf[term][doc_id] = tf
 
 isContinue = True
 while isContinue:
@@ -441,26 +397,19 @@ while isContinue:
         colorizePrint("GREEN", "Goodbye!")
         break
 
-    # show help for chosen model
     if option == 1:
         show_standard_boolean_help()
     elif option == 2:
         show_extended_boolean_help()
 
-    # Ask for the query after model selection
-    colorizePrint("YELLOW", "Enter your query (type 'back' to choose another model, 'exit' to quit):")
+    colorizePrint("YELLOW", "Enter query (type 'back' to choose another model):")
     query = input().strip()
-    if query.lower() == 'exit':
-        colorizePrint("GREEN", "Goodbye!")
-        break
     if query.lower() == 'back':
         continue
-
     if option == 1:
         standard_boolean_model(query)
     elif option == 2:
         extended_boolean_model(query)
     else:
-        colorizePrint("RED", "Invalid option (shouldn't happen).")
-
+        colorizePrint("RED", "Invalid option.")
     print()
